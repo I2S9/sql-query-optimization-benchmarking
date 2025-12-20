@@ -62,10 +62,6 @@ CREATE TABLE order_items (
     CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE RESTRICT
 );
 
--- Create indexes on foreign keys for better query performance
-CREATE INDEX idx_products_category_id ON products(category_id);
-CREATE INDEX idx_orders_customer_id ON orders(customer_id);
-CREATE INDEX idx_orders_order_date ON orders(order_date);
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_order_items_product_id ON order_items(product_id);
+-- Note: Indexes are defined separately in sql/indexes.sql
+-- This allows for clean "no index" vs "with index" benchmarking
 
