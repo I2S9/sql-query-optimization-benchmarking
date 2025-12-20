@@ -1,0 +1,67 @@
+# SQL Query Optimization Benchmarking - Configuration File
+# This file centralizes all parameters for reproducible experiments
+
+# Database configuration
+database:
+  host: "localhost"
+  port: 5432
+  name: "benchmark_db"
+  user: "benchmark"
+  password: "benchmark"
+  
+  # Can be overridden by environment variables:
+  # DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD
+
+# Data generation configuration
+data_generation:
+  seed: 42  # Fixed seed for reproducibility
+  scales:
+    small:
+      num_categories: 15
+      num_products: 150
+      num_customers: 800
+      num_orders: 3000
+      min_items_per_order: 1
+      max_items_per_order: 5
+    medium:
+      num_categories: 30
+      num_products: 1500
+      num_customers: 8000
+      num_orders: 30000
+      min_items_per_order: 1
+      max_items_per_order: 5
+    large:
+      num_categories: 50
+      num_products: 5000
+      num_customers: 50000
+      num_orders: 200000
+      min_items_per_order: 1
+      max_items_per_order: 5
+
+# Benchmark configuration
+benchmarks:
+  latency:
+    warmup_runs: 2
+    measurement_runs: 10
+    
+  throughput:
+    concurrency_levels: [4, 8, 12, 16]  # Workers to test
+    duration_seconds: 30  # Duration per test
+    
+  # Scales to benchmark
+  scales: ["small", "medium", "large"]
+  
+  # Index configurations to test
+  index_configs: ["no_index", "with_index"]
+
+# Analysis configuration
+analysis:
+  # Percentiles to calculate
+  percentiles: [50, 95, 99]
+  
+  # Generate plots
+  generate_plots: true
+  
+  # Generate summary CSV
+  generate_summary: true
+
