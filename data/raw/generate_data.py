@@ -6,6 +6,8 @@ Generates synthetic, reproducible data for the e-commerce schema.
 
 import random
 import csv
+import argparse
+import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -16,13 +18,36 @@ random.seed(42)
 OUTPUT_DIR = Path(__file__).parent
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-# Dataset size configuration (small dataset)
-NUM_CATEGORIES = 15
-NUM_PRODUCTS = 150
-NUM_CUSTOMERS = 800
-NUM_ORDERS = 3000
-MIN_ITEMS_PER_ORDER = 1
-MAX_ITEMS_PER_ORDER = 5
+# Dataset size configurations by scale
+SCALE_CONFIGS = {
+    "small": {
+        "num_categories": 15,
+        "num_products": 150,
+        "num_customers": 800,
+        "num_orders": 3000,
+        "min_items_per_order": 1,
+        "max_items_per_order": 5,
+    },
+    "medium": {
+        "num_categories": 30,
+        "num_products": 1500,
+        "num_customers": 8000,
+        "num_orders": 30000,
+        "min_items_per_order": 1,
+        "max_items_per_order": 5,
+    },
+    "large": {
+        "num_categories": 50,
+        "num_products": 5000,
+        "num_customers": 50000,
+        "num_orders": 200000,
+        "min_items_per_order": 1,
+        "max_items_per_order": 5,
+    }
+}
+
+# Default to small for backward compatibility
+DEFAULT_SCALE = "small"
 
 # Sample data pools
 COUNTRIES = [
@@ -95,10 +120,11 @@ START_DATE = datetime.now() - timedelta(days=730)
 END_DATE = datetime.now()
 
 
-def generate_categories():
+def generate_categories(config):
     """Generate categories data."""
     categories = []
-    for i in range(1, NUM_CATEGORIES + 1):
+    num_categories = config["num_categories"]
+    for i in range(1, num_categories + 1):
         category_name = CATEGORY_NAMES[i - 1]
         categories.append({
             "category_id": i,
@@ -109,20 +135,22 @@ def generate_categories():
     return categories
 
 
-def generate_products(categories):
+def generate_products(categories, config):
     """Generate products data."""
     products = []
     product_id = 1
+    num_products_target = config["num_products"]
     
     for category in categories:
         category_id = category["category_id"]
         category_name = category["name"]
         product_templates = PRODUCT_NAMES.get(category_name, ["Product"])
         
-        # Generate 8-12 products per category
-        num_products = random.randint(8, 12)
+        # Generate products per category (adaptive based on target)
+        products_per_category = max(1, num_products_target // len(categories))
+        num_products = random.randint(products_per_category - 2, products_per_category + 2)
         for _ in range(num_products):
-            if product_id > NUM_PRODUCTS:
+            if product_id > num_products_target:
                 break
             
             template = random.choice(product_templates)
@@ -142,10 +170,11 @@ def generate_products(categories):
     return products
 
 
-def generate_customers():
+def generate_customers(config):
     """Generate customers data."""
     customers = []
-    for i in range(1, NUM_CUSTOMERS + 1):
+    num_customers = config["num_customers"]
+    for i in range(1, num_customers + 1):
         first_name = random.choice(FIRST_NAMES)
         last_name = random.choice(LAST_NAMES)
         country = random.choice(COUNTRIES)
@@ -164,10 +193,11 @@ def generate_customers():
     return customers
 
 
-def generate_orders(customers):
+def generate_orders(customers, config):
     """Generate orders data."""
     orders = []
-    for i in range(1, NUM_ORDERS + 1):
+    num_orders = config["num_orders"]
+    for i in range(1, num_orders + 1):
         customer = random.choice(customers)
         order_date = START_DATE + timedelta(
             days=random.randint(0, (END_DATE - START_DATE).days),
@@ -186,17 +216,19 @@ def generate_orders(customers):
     return orders
 
 
-def generate_order_items(orders, products):
+def generate_order_items(orders, products, config):
     """Generate order items data."""
     order_items = []
     item_id = 1
+    min_items = config["min_items_per_order"]
+    max_items = config["max_items_per_order"]
     
     # Group orders by order_id for efficient lookup
     orders_by_id = {order["order_id"]: order for order in orders}
     
     for order in orders:
         order_id = order["order_id"]
-        num_items = random.randint(MIN_ITEMS_PER_ORDER, MAX_ITEMS_PER_ORDER)
+        num_items = random.randint(min_items, max_items)
         order_total = 0.0
         
         for _ in range(num_items):
@@ -234,28 +266,43 @@ def write_csv(filename, data, fieldnames):
 
 def main():
     """Main function to generate all data files."""
-    print("Generating synthetic data (seed=42)...")
-    print(f"Dataset size: {NUM_CUSTOMERS} customers, {NUM_ORDERS} orders")
+    parser = argparse.ArgumentParser(
+        description="Generate synthetic data for SQL Query Optimization Benchmarking"
+    )
+    parser.add_argument(
+        "--scale",
+        type=str,
+        default=DEFAULT_SCALE,
+        choices=["small", "medium", "large"],
+        help=f"Dataset scale (default: {DEFAULT_SCALE})"
+    )
+    
+    args = parser.parse_args()
+    scale = args.scale
+    config = SCALE_CONFIGS[scale]
+    
+    print(f"Generating synthetic data (seed=42, scale={scale})...")
+    print(f"Dataset size: {config['num_customers']} customers, {config['num_orders']} orders")
     print()
     
     # Generate data in dependency order
     print("Generating categories...")
-    categories = generate_categories()
+    categories = generate_categories(config)
     write_csv("categories.csv", categories, ["category_id", "name", "description", "created_at"])
     
     print("Generating products...")
-    products = generate_products(categories)
+    products = generate_products(categories, config)
     write_csv("products.csv", products, ["product_id", "category_id", "name", "description", "price", "stock_quantity", "created_at"])
     
     print("Generating customers...")
-    customers = generate_customers()
+    customers = generate_customers(config)
     write_csv("customers.csv", customers, ["customer_id", "email", "first_name", "last_name", "country", "city", "created_at"])
     
     print("Generating orders...")
-    orders = generate_orders(customers)
+    orders = generate_orders(customers, config)
     
     print("Generating order items...")
-    order_items = generate_order_items(orders, products)
+    order_items = generate_order_items(orders, products, config)
     write_csv("order_items.csv", order_items, ["order_item_id", "order_id", "product_id", "quantity", "unit_price", "subtotal"])
     
     # Write orders after calculating totals
