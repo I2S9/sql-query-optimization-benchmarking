@@ -1,11 +1,12 @@
 # SQL Query Optimization Benchmarking - Makefile
 # Provides convenient commands for running benchmarks
 
-.PHONY: help install setup generate load benchmark analyze plot clean all
+.PHONY: help install setup generate load benchmark analyze plot clean all docker-build docker-run docker-clean docker-all
 
 help:
 	@echo "SQL Query Optimization Benchmarking - Available commands:"
 	@echo ""
+	@echo "Local execution:"
 	@echo "  make install       - Install Python dependencies"
 	@echo "  make setup         - Setup database (start PostgreSQL)"
 	@echo "  make generate      - Generate data for all scales"
@@ -15,6 +16,12 @@ help:
 	@echo "  make plot          - Generate plots from results"
 	@echo "  make clean         - Clean generated data and results"
 	@echo "  make all           - Run complete benchmark suite"
+	@echo ""
+	@echo "Docker execution (recommended for reproducibility):"
+	@echo "  make docker-build  - Build Docker image"
+	@echo "  make docker-run    - Run complete pipeline in Docker"
+	@echo "  make docker-clean  - Stop containers and remove volumes"
+	@echo "  make docker-all    - Build and run complete pipeline"
 	@echo ""
 
 install:
@@ -62,5 +69,25 @@ clean:
 all: install setup generate load benchmark analyze plot
 	@echo ""
 	@echo "Complete benchmark suite finished!"
+	@echo "Results available in results/ directory"
+
+docker-build:
+	@echo "Building Docker image..."
+	docker-compose build
+
+docker-run:
+	@echo "Running complete benchmark pipeline in Docker..."
+	docker-compose up benchmark
+	@echo ""
+	@echo "Pipeline completed! Results available in results/ directory"
+
+docker-clean:
+	@echo "Cleaning Docker containers and volumes..."
+	docker-compose down -v
+	@echo "Clean complete!"
+
+docker-all: docker-build docker-run
+	@echo ""
+	@echo "Docker pipeline completed successfully!"
 	@echo "Results available in results/ directory"
 

@@ -107,6 +107,29 @@ python benchmarks/analyze_results.py
 python benchmarks/plot_results.py
 ```
 
+### Docker Execution (Recommended for Reproducibility)
+
+For complete reproducibility, use Docker to run the entire pipeline:
+
+```bash
+# Build and run complete pipeline in one command
+make docker-all
+
+# Or manually:
+docker-compose build
+docker-compose up benchmark
+```
+
+This will:
+1. Start PostgreSQL database
+2. Generate data for all scales
+3. Load data into database
+4. Run all benchmarks (latency and throughput)
+5. Capture EXPLAIN plans
+6. Analyze results and generate plots
+
+Results are persisted in `results/` directory on the host machine.
+
 ### Configuration
 
 All benchmark parameters are centralized in `config.yaml`:

@@ -15,6 +15,25 @@ services:
       timeout: 5s
       retries: 5
 
+  benchmark:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: benchmark_db
+      DB_USER: benchmark
+      DB_PASSWORD: benchmark
+    volumes:
+      # Mount results directory to persist outputs
+      - ./results:/app/results
+      # Mount data directory to persist generated data
+      - ./data:/app/data
+
 volumes:
   postgres_data:
 
